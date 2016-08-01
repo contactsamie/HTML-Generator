@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
@@ -92,7 +93,7 @@ namespace uig.lib
             return CreatePage(head, body);
         }
 
-        public static HtmlElement CreateBasicFullHtmlPage(SourcePaths paths, List<string> appScripts, List<string> appStyles, List<HtmlElement> bodyContentElements,string outPutFolder)
+        public static HtmlElement CreateBasicFullHtmlPage(SourcePaths paths, List<string> appScripts, List<string> appStyles, List<HtmlElement> bodyContentElements,string sourceFolder,string outPutFolder)
         {
             var pageObj = new PageObject
             {
@@ -160,22 +161,31 @@ namespace uig.lib
             {
                 var path = outPutFolder + "/" + x;
                 var dir = Path.GetDirectoryName(path);
-                if (dir == null || !File.Exists(x)) return;
+                if (dir == null || !File.Exists(sourceFolder + "/" + x)) return;
                 if (!Directory.Exists(dir))
                 {
                     Directory.CreateDirectory(dir);
                 }
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
                
-                File.Copy(x,path,true);
+                File.Copy(sourceFolder + "/" + x, path,true);
             });
 
             var page = CreateFullWebPagePage(pageObj);
-            File.WriteAllText(outPutFolder + "/" + "index.html", page.HtmlString());
+            var indexPath = outPutFolder + "/" + "index.html";
+            File.WriteAllText(indexPath, page.HtmlString());
+            Process.Start(indexPath);
+
             return page;
         }
 
 
-        public static SampleResult GenerateSampleResult(string app, List<Tuple<string, string>> views)
+
+     
+        public static SampleResult GenerateSampleResult(string app,  string outPutFolder, List<Tuple<string, string>> views)
         {
             var body = new List<HtmlElement>()
                        {
@@ -183,7 +193,11 @@ namespace uig.lib
                             new HtmlElement("script",null,new List<HtmlElement>()
                             {
                                 new HtmlElement(app)
-                            })
+                            }),
+                             new HtmlElement("div", new Dictionary<string, string>()
+                             {
+                                 { "ui-view"," "}
+                             })
                        };
 
             views?.ForEach(x =>
@@ -198,20 +212,165 @@ namespace uig.lib
                 }));
             });
 
+           
             var page = HtmlElementFactory.CreateBasicFullHtmlPage(
-                       new SourcePaths("files/js", "files/css", "files/images", "files/lib"),
+                       new SourcePaths("js", "css", "images", "lib"),
                        new List<string>() { "app.js" },
                        new List<string>() { "app.css" },
-                       body,System.Environment.GetFolderPath(Environment.SpecialFolder.Desktop)+"/!outputweb");
+                       body,"files", outPutFolder);
 
             var json = JsonConvert.SerializeObject(page, Formatting.Indented);
             var html = page.HtmlString();
             return new SampleResult()
             {
                 HtmlObject = page,
-                Json = json,
-                Html = html
+                HtmlJson = json,
+                HtmlString = html
             };
+        }
+       
+        public static SampleResult GenerateSampleResult(string outPutFolder)
+        {
+            var appName = "myapp";
+            var defaultRoute = "/";
+
+            var moduleHandle = @"angular.module('" + appName + @"')";
+          
+            var services = new List<string>{};
+            var factories = new List<string> { };
+            var directives = new List<string> {
+                moduleHandle +@".directive('dynamic', function ($compile) {
+                                  return {
+                                    restrict: 'A',
+                                    replace: true,
+                                    link: function (scope, ele, attrs) {
+                                      scope.$watch(attrs.dynamic, function(html) {
+                                        ele.html(html);
+                                        $compile(ele.contents())(scope);
+                                      });
+                                    }
+                                  };
+                                });" };
+            var controllers = new List<string>
+            {
+
+                    moduleHandle+@".controller('PageCtrl', function($scope) { 
+                                              console.log('ready in controller');
+                                              $scope.values=[1,2];
+                                              $scope.click = function(arg) {
+                                                alert('Clicked ' + arg);
+                                              }
+                                              $scope.html = '<a class=""btn btn-primary"" ng-click=""click(value)"" >Click me {{value}}</a>'  
+                                         });
+                                        "
+            };
+            var views=new List<Tuple<string,string>>()
+            {
+                new Tuple<string, string>("views/sample.html",
+                 @"
+                                        <ul>
+                                            <li ng-repeat='value in values'>
+                                                    <a>
+                                                    <div dynamic='html'></div>
+                                                </a>
+                                            </li>
+                                        </ul>"
+                )
+            };
+
+            var states = new List<NgStateObject>()
+            {
+                new NgStateObject()
+                {
+                    Controller="PageCtrl",
+                    Route = "/list?page" ,
+                    TemplateUrl = "views/sample.html",
+                    StateName = "list",
+                    ControllerCode="",
+                    TemplateString = ""
+                }
+                                           
+            };
+
+           var components = new List<string>();
+            components.AddRange(services);
+            components.AddRange(directives);
+            components.AddRange(controllers);
+            components.AddRange(factories);
+
+         
+            var result = GenerateAngularApp(new AppDefinitionObject()
+            {
+                OutPutFolder = outPutFolder,
+                States = states,
+                AppName = appName,
+                DefaultRoute = defaultRoute,
+                Components = components,
+                Views = views
+            });
+
+            return result;
+        }
+
+
+      
+
+        private static SampleResult GenerateAngularApp(AppDefinitionObject appDefinitionObject)
+        {
+            var app = BuildAppCode(appDefinitionObject.States, appDefinitionObject.AppName, appDefinitionObject.DefaultRoute, appDefinitionObject.Components);
+            var result = HtmlElementFactory.GenerateSampleResult(app, appDefinitionObject.OutPutFolder, appDefinitionObject.Views);
+            result.AppDefinitionObject = appDefinitionObject;
+            result.AppDefinitionObjectJson = JsonConvert.SerializeObject(appDefinitionObject, Formatting.Indented);
+            return result;
+        }
+
+        private static string BuildAppCode(List<NgStateObject> states, string appName, string defaultRoute, List<string> services)
+        {
+            //views
+            var stateString = "";
+            var controllerCodes = "";
+            states.ForEach(x =>
+            {
+                stateString += @"
+                 .state('" + x.StateName + @"', {
+                    url: '" + x.Route + @"',
+		            templateUrl: '" + x.TemplateUrl + @"'
+                    " + (string.IsNullOrEmpty(x.TemplateString) ? "" : ",template: '" + x.TemplateString + "'") + @"
+                    " + (string.IsNullOrEmpty(x.Controller) ? "" : ",controller: '" + x.Controller + "'") + @"
+                 })";
+
+                controllerCodes += x.ControllerCode;
+            });
+
+            var servicesString = string.Join(" ", services);
+            var modules = new List<string>() {"ui.router"};
+            var modulesString = string.Join("", modules);
+
+            var moduleDefinitionCode = @"angular.module('" + appName + @"', [ '" + modulesString + @"']);";
+            var moduleHandle = @"angular.module('" + appName + @"')";
+            var initRunCode = moduleHandle + @".run(function($rootScope, $state) {  console.log('ready in run'); });";
+
+            var configCode =
+                moduleHandle + @".config(function($stateProvider, $urlRouterProvider, $httpProvider) {
+
+                startupRoute = '" + defaultRoute + @"';
+	            $urlRouterProvider.otherwise(startupRoute);
+	            $httpProvider.defaults.useXDomain = true;
+                delete $httpProvider.defaults.headers.common['X-Requested-With'];
+
+	            $stateProvider" + stateString + @";
+
+	            $httpProvider.defaults.useXDomain = true;
+                delete $httpProvider.defaults.headers.common['X-Requested-With'];
+                })
+                ";
+
+            var manualBoostrapingCode = @"
+                 //manual bootstrap process 
+                 angular.element(document).ready(function () { angular.bootstrap(document, ['" + appName + @"']); });
+                ";
+            var app = moduleDefinitionCode + configCode + initRunCode + servicesString + controllerCodes + manualBoostrapingCode;
+            return app;
         }
     }
 }

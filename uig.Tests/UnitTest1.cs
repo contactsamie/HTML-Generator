@@ -12,48 +12,9 @@ namespace uig.Tests
         [TestMethod]
         public void TestMethod1()
         {
-            var app =
-           @"
-angular
+            var outPutFolder = System.Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "/!outputweb";
 
-.module('myapp', [ 'ui.router'])
-
-.config(function($stateProvider, $urlRouterProvider, $httpProvider) {
-
-                startupRoute = '/';
-	            $urlRouterProvider.otherwise(startupRoute);
-	            $httpProvider.defaults.useXDomain = true;
-                delete $httpProvider.defaults.headers.common['X-Requested-With'];
-
-	            $stateProvider.state('list', {
-                    url: '/list?page&search&orderBy&descending&dueThisWeek&dueToday&pastDueDate&loadAllShows&dueThisMonth&dueNextTwoWeeks&notPastDueDate',
-		            templateUrl: 'views/pages/_list.html'
-                 });
-
-	            $httpProvider.defaults.useXDomain = true;
-                delete $httpProvider.defaults.headers.common['X-Requested-With'];
-
-                })
-
-.run(function($rootScope, $state) {  })
-
-.controller('MyCtrl', function($scope) {  });
-
-";
-            var views=new List<Tuple<string, string>>()
-            {
-                new Tuple<string, string>("sample.html",
-                                            @"
-                                             <ul>
-                                                    <li ng-repeat='value in values'>
-                                                    <a ng-click='doSomething({id:value.id})'>
-                                                                        {{value.name}}
-                                                    </a>
-                                                    </li>
-                                                </ul>
-                                            ")
-            };
-            var result=     HtmlElementFactory.GenerateSampleResult(app,views);
+            var result =     HtmlElementFactory.GenerateSampleResult(outPutFolder);
         }
     }
 }

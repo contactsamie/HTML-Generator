@@ -44,6 +44,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="NgAppDefinitionObject.cs" />
+    <Compile Include="NgStateObject.cs" />
     <Compile Include="PageObject.cs" />
     <Compile Include="HtmlElement.cs" />
     <Compile Include="HtmlElementFactory.cs" />
@@ -55,6 +57,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="files\css\app.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="files\css\bootstrap.min.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
