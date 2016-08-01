@@ -44,12 +44,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AWebAppGeneratorFactory.cs" />
+    <Compile Include="AnNgComponent.cs" />
+    <Compile Include="BootStrapSampleWebAppGeneratorFactory.cs" />
+    <Compile Include="HtmlAttributeTypes.cs" />
+    <Compile Include="HtmlConstants.cs" />
+    <Compile Include="HtmlElementTypes.cs" />
     <Compile Include="NgAppDefinitionObject.cs" />
     <Compile Include="NgStateObject.cs" />
     <Compile Include="PageObject.cs" />
     <Compile Include="HtmlElement.cs" />
-    <Compile Include="HtmlElementFactory.cs" />
+    <Compile Include="AngularJsWebAppFactory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="InMemoryGeneratorFactory.cs" />
+    <Compile Include="SampleNgComponent.cs" />
     <Compile Include="SampleResult.cs" />
     <Compile Include="SourcePaths.cs" />
   </ItemGroup>

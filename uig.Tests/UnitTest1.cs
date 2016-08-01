@@ -13,8 +13,20 @@ namespace uig.Tests
         public void TestMethod1()
         {
             var outPutFolder = System.Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "/!outputweb";
+            const string appName = "samuel";
 
-            var result =     HtmlElementFactory.GenerateSampleResult(outPutFolder);
+            const string defaultRoute = "/list";
+
+            //the components and routing / states
+            var components = new List<AnNgComponent>()
+            {
+                new SampleNgComponent(appName)
+            };
+
+            //the master page
+            var webAppFactory = new BootStrapSampleWebAppGeneratorFactory(appName, components);
+
+            var result = AngularJsWebAppFactory.GenerateWebApp(webAppFactory,outPutFolder,appName, defaultRoute);
         }
     }
 }

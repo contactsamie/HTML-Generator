@@ -11,5 +11,7 @@ namespace uig.lib
         public string DefaultRoute { set; get; }
         public List<string> Components { set; get; }
         public List<Tuple<string, string>> Views { set; get; }
+
+      
     }
 }
